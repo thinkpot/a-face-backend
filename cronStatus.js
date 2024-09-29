@@ -7,7 +7,7 @@ const Replicate = require('replicate');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Pricing = require('./models/Pricing');
-re
+
 // Global flag to track if the cron job is running
 let cronJobRunning = false;
 let imageGenerationInProgress = false; // Ensure only one image generation happens at a time
