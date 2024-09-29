@@ -58,7 +58,8 @@ router.post('/train', upload.single('file'), async (req, res) => {
         const triggerWord = generateUniqueTriggerWord();
 
         // Retrieve gender from request body
-        const { gender } = req.body;
+        const { gender, style } = req.body;
+        console.log("Style hh ", style)
         if (!gender) {
             return res.status(400).json({ message: 'Gender is required' });
         }
@@ -106,6 +107,7 @@ router.post('/train', upload.single('file'), async (req, res) => {
             modelId:modelId,
             version:"1",
             status:"starting",
+            styleLink:style,
             gender
         });
 

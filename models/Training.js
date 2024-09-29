@@ -11,7 +11,8 @@ const TrainingSchema = new mongoose.Schema({
   gender: {type: String},
   status: { type: String},
   generatedImageUrl: { type: String },
-  images_list: [{ type: String }]
+  images_list: [{ type: String }],
+  styleLink: { type: String, required: true },
 });
 
 module.exports = mongoose.model('Training', TrainingSchema);

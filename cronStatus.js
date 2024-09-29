@@ -5,7 +5,9 @@ const axios = require('axios');
 const Training = require('./models/Training'); // Your Training model
 const Replicate = require('replicate');
 const jwt = require('jsonwebtoken');
-
+const User = require('./models/User');
+const Pricing = require('./models/Pricing');
+re
 // Global flag to track if the cron job is running
 let cronJobRunning = false;
 let imageGenerationInProgress = false; // Ensure only one image generation happens at a time
@@ -30,7 +32,7 @@ async function checkAndGenerateImage(training, task) {
             return;
         }
 
-        const { trainModelId, trigger_word, gender, user } = training;
+        const { trainModelId, trigger_word, gender, user, styleLink } = training;
         const replicateResponse = await axios.get(`https://api.replicate.com/v1/trainings/${trainModelId}`, {
             headers: {
                 Authorization: `Bearer ${process.env.REPLICATE_API_KEY}`,
@@ -46,6 +48,18 @@ async function checkAndGenerateImage(training, task) {
 
             imageGenerationInProgress = true; // Set flag to prevent multiple image generations
 
+            const user = await User.findById(training.user);
+            // Fetch the pricing model for image generation charge
+            const pricing = await Pricing.findOne();
+            if (!pricing) {
+                return res.status(404).json({ error: 'Pricing data not found' });
+            }
+            const imageGenerationCharge = pricing.imageGenerationCharge;
+            // Check if user has enough credits
+            if (user.credits < imageGenerationCharge) {
+                return res.status(400).json({ message: 'Insufficient credits' });
+            }
+            console.log("User ", user, "Charge ", imageGenerationCharge, "Credits ", user.credits)
             const replicate = new Replicate({
                 auth: process.env.REPLICATE_API_KEY,
             });
@@ -55,7 +69,7 @@ async function checkAndGenerateImage(training, task) {
                 {
                     input: {
                         model: "dev",  // Example model (replace if needed)
-                        prompt: `${trigger_word} is ${gender} and she is 15 years old`,
+                        prompt: `${trigger_word} is ${gender}`,
                         lora_scale: 1,
                         num_outputs: 1,
                         aspect_ratio: "1:1",
@@ -64,7 +78,8 @@ async function checkAndGenerateImage(training, task) {
                         output_quality: 90,
                         prompt_strength: 0.8,
                         extra_lora_scale: 1,
-                        num_inference_steps: 28
+                        num_inference_steps: 28,
+                        image: styleLink,
                     }
                 }
             );
@@ -76,7 +91,13 @@ async function checkAndGenerateImage(training, task) {
             training.generatedImageUrl = imageUrl[0];
             training.status = 'succeeded';
             training.version = replicateResponse.data.output.version;
+            training.images_list.push(imageUrl[0]);
             await training.save();
+
+            // Deduct the credits for image generation
+            user.credits -= imageGenerationCharge;
+            await user.save();
+            console.log("Image Generation Charges Deducted ", user.credits)
 
             console.log("Training ", training)
             console.log(`Image generation for model ${trainModelId} completed and saved.`);
@@ -134,10 +155,10 @@ function startCronJob(userId) {
 
 // Function to stop the cron job
 function stopCronJob(task) {
-        task.stop();
-        cronJobRunning = false;
-        console.log('Cron job stopped.');
-    
+    task.stop();
+    cronJobRunning = false;
+    console.log('Cron job stopped.');
+
 }
 
 // API to start the cron job manually after upload (for authenticated users)
