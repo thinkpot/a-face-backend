@@ -13,6 +13,7 @@ const TrainingSchema = new mongoose.Schema({
   generatedImageUrl: { type: String },
   images_list: [{ type: String }],
   styleLink: { type: String, required: true },
+  modelName: { type: String, required: true }
 });
 
 module.exports = mongoose.model('Training', TrainingSchema);

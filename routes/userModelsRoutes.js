@@ -22,7 +22,7 @@ router.get('/models', authenticateToken, async (req, res) => {
         const userId = req.user.userId; // Assuming userId is stored in token
 
         // Fetch all models for the current user
-        const models = await Training.find({ user: userId }).select('trainModelId zipFileLink trigger_word version modelId');
+        const models = await Training.find({ user: userId }).select('trainModelId zipFileLink trigger_word version modelId modelName');
 
         // Fetch the status of each model from the Replicate API
         const replicateApiKey = process.env.REPLICATE_API_KEY; // Store this in your environment variables
