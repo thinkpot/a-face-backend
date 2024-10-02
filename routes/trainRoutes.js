@@ -73,9 +73,11 @@ router.post('/train', upload.single('file'), async (req, res) => {
         // Fetch pricing details from the Pricing model
         const pricingDetails = await Pricing.findOne(); // Fetch the pricing document
         const trainingCost = pricingDetails ? pricingDetails.modelTrainingCharge : 300; // Default to 300 if not found
-        
+        const imageGenerationCost = pricingDetails ? pricingDetails.imageGenerationCharge : 7; 
+
+        const totalCost = trainingCost + imageGenerationCost
         // Check if user has enough credits
-        if (user.credits < trainingCost) {
+        if (user.credits < totalCost) {
             return res.status(400).json({ message: 'Insufficient credits to train the model' });
         }
 
@@ -182,7 +184,7 @@ router.post('/train', upload.single('file'), async (req, res) => {
         console.log("Training Updated")
 
         // Deduct training cost from user credits after successful training initiation
-        user.credits -= trainingCost;
+        user.credits -= totalCost;
         await user.save(); //
         console.log("Training amount is deducted")
 
