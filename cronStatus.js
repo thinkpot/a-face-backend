@@ -7,7 +7,16 @@ const Replicate = require('replicate');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Pricing = require('./models/Pricing');
+const { v4: uuidv4 } = require('uuid');
+const { Storage } = require('@google-cloud/storage');
+const path = require('path');
 
+
+// Google Cloud Storage setup
+const gcs = new Storage({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    keyFilename: path.join(__dirname, './ai-face-generator-435017-76d6fa92854c.json') // Path to your service account JSON file
+});
 // Global flag to track if the cron job is running
 let cronJobRunning = false;
 let imageGenerationInProgress = false; // Ensure only one image generation happens at a time
@@ -86,12 +95,36 @@ async function checkAndGenerateImage(training, task) {
 
             const imageUrl = generateResponse;
             console.log(`Generated image URL: ${imageUrl}`);
+            // Now uploading to Cloud Storage
+            console.log("Now uploading to gdrive")
+            const imageResponse = await axios({
+                url: imageUrl[0],
+                method: 'GET',
+                responseType: 'arraybuffer'
+            });
+
+            const imageBuffer = Buffer.from(imageResponse.data, 'binary');
+            const googleId = user.googleId;
+            const folderName = googleId;
+            const imageName = `generated-image-${uuidv4()}.jpg`; // Generate a unique name for the image
+            const destinationPath = `${folderName}/${imageName}`;
+
+            const bucketName = process.env.GCLOUD_STORAGE_BUCKET;
+            const file = gcs.bucket(bucketName).file(destinationPath);
+            await file.save(imageBuffer, {
+                metadata: {
+                    contentType: 'image/jpeg',
+                }
+            });
+
+            await file.makePublic();
+            const publicUrl = `https://storage.googleapis.com/${bucketName}/${destinationPath}`;
 
             // Update training with generated image URL and status
-            training.generatedImageUrl = imageUrl[0];
+            training.generatedImageUrl = publicUrl;
             training.status = 'succeeded';
             training.version = replicateResponse.data.output.version;
-            training.images_list.push(imageUrl[0]);
+            training.images_list.push(publicUrl);
             await training.save();
 
             // Deduct the credits for image generation
