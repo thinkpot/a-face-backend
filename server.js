@@ -15,6 +15,7 @@ const cronJobRoutes = require('./cronStatus'); // Import the cron job routes
 const verifyToken = require('./authMiddleware');
 const paymentRoutes = require('./routes/paymentRoutes');
 const pricingRoutes = require('./routes/pricingRoutes');
+const { listImages } = require('./routes/googleStorageController');
 
 
 dotenv.config();
@@ -93,10 +94,12 @@ app.use('/cron', cronJobRoutes); // Add the cron job routes
 // Use payment routes
 app.use('/api/payment', paymentRoutes);
 
+app.get('/api/styles/:gender/:tab', listImages);
 
 
 // Use the pricing routes
 app.use('/api', pricingRoutes);
+
 
 
 // Basic route
