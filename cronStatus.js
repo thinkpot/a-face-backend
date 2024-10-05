@@ -58,6 +58,7 @@ async function checkAndGenerateImage(training, task) {
             imageGenerationInProgress = true; // Set flag to prevent multiple image generations
 
             const user = await User.findById(training.user);
+            
             // Fetch the pricing model for image generation charge
             const pricing = await Pricing.findOne();
             if (!pricing) {
@@ -131,8 +132,6 @@ async function checkAndGenerateImage(training, task) {
             user.credits -= imageGenerationCharge;
             await user.save();
             console.log("Image Generation Charges Deducted ", user.credits)
-
-            console.log("Training ", training)
             console.log(`Image generation for model ${trainModelId} completed and saved.`);
 
             // After successful generation, stop the cron job
@@ -158,7 +157,7 @@ function startCronJob(userId) {
 
     cronJobRunning = true; // Mark cron job as running
 
-    const current_task = cron.schedule('*/3 * * * * *', async () => { // Check every 10 seconds
+    const current_task = cron.schedule('*/5 * * * *', async () => { // Check every 10 seconds
         console.log('Cron job checking training status...');
         if (imageGenerationInProgress) {
             console.log('Image generation is in progress, waiting for completion.');

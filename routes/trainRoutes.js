@@ -73,7 +73,7 @@ router.post('/train', upload.single('file'), async (req, res) => {
         // Fetch pricing details from the Pricing model
         const pricingDetails = await Pricing.findOne(); // Fetch the pricing document
         const trainingCost = pricingDetails ? pricingDetails.modelTrainingCharge : 300; // Default to 300 if not found
-        const imageGenerationCost = pricingDetails ? pricingDetails.imageGenerationCharge : 7; 
+        const imageGenerationCost = pricingDetails ? pricingDetails.imageGenerationCharge : 7;
 
         const totalCost = trainingCost + imageGenerationCost
         // Check if user has enough credits
@@ -106,11 +106,11 @@ router.post('/train', upload.single('file'), async (req, res) => {
             user: user._id, // Associate the training with the user
             zipFileLink: publicUrl,
             trigger_word: triggerWord,
-            modelId:modelId,
-            version:"1",
-            status:"starting",
-            styleLink:style,
-            modelName:modelName,
+            modelId: modelId,
+            version: "1",
+            status: "starting",
+            styleLink: style,
+            modelName: modelName,
             gender
         });
 
@@ -172,7 +172,7 @@ router.post('/train', upload.single('file'), async (req, res) => {
             }
         );
 
-        console.log("Training is started ", trainingResponse)
+        console.log("Training is started ")
 
         const actualTrainModelId = trainingResponse.id; // Get the actual training ID from the Replicate response
 
@@ -190,12 +190,21 @@ router.post('/train', upload.single('file'), async (req, res) => {
 
         // Call the endpoint to start the cron job
         try {
-            const cronResponse = await axios.post(`${process.env.APP_URL}/cron/start-cron-job`);
-            console.log('Cron job started successfully', cronResponse.data);
+            console.log("Token ", decodedToken)
+            console.log("App url ", `${process.env.APP_URL}/cron/start-cron-job`)
+            await axios.post(`${process.env.APP_URL}/cron/start-cron-job`, {}, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Cron job started successfully');
         } catch (error) {
             console.error('Failed to start cron job:', error.response ? error.response.data : error.message);
+            console.log(error.response.headers)
         }
-        console.log("Cron Job HIT")
+        
         // Handle success response
         res.json({ message: 'Model training initiated', data: trainingResponse });
     } catch (error) {
@@ -207,27 +216,24 @@ router.post('/train', upload.single('file'), async (req, res) => {
 
 // Update training model with generated image URL
 router.put('/:trainModelId', async (req, res) => {
-  const { imageUrl } = req.body;
+    const { imageUrl } = req.body;
 
-  try {
-    const trainingModel = await Training.findOne({ trainModelId: req.params.trainModelId });
+    try {
+        const trainingModel = await Training.findOne({ trainModelId: req.params.trainModelId });
 
-    if (!trainingModel) {
-      return res.status(404).json({ message: 'Training model not found' });
+        if (!trainingModel) {
+            return res.status(404).json({ message: 'Training model not found' });
+        }
+
+        // Add image URL to images_list
+        trainingModel.images_list.push(imageUrl);
+        await trainingModel.save();
+
+        return res.status(200).json({ message: 'Training model updated', trainingModel });
+    } catch (error) {
+        console.error('Error updating training model:', error);
+        return res.status(500).json({ message: 'Error updating training model' });
     }
-
-    // Add image URL to images_list
-    trainingModel.images_list.push(imageUrl);
-    await trainingModel.save();
-
-    return res.status(200).json({ message: 'Training model updated', trainingModel });
-  } catch (error) {
-    console.error('Error updating training model:', error);
-    return res.status(500).json({ message: 'Error updating training model' });
-  }
 });
-
-module.exports = router;
-
 
 module.exports = router;
