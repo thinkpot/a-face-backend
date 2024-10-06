@@ -59,7 +59,7 @@ router.post('/train', upload.single('file'), async (req, res) => {
 
         // Retrieve gender from request body
         const { gender, style, modelName } = req.body;
-        console.log("Style hh ", style)
+        
         if (!gender) {
             return res.status(400).json({ message: 'Gender is required' });
         }

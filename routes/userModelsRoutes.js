@@ -34,7 +34,7 @@ router.get('/models', authenticateToken, async (req, res) => {
                             Authorization: `Bearer ${replicateApiKey}`
                         }
                     });
-                    console.log("Rep res ", replicateResponse)
+                    
                     return { ...model._doc, status: replicateResponse.data.status }; // Add status to the model
                 } catch (err) {
                     console.error(`Error fetching status for model ${model.trainModelId}:`, err);

@@ -40,7 +40,7 @@ router.get('/get-credits', async (req, res) => {
   });
 
 
-router.get('/images', async (req, res) => {
+  router.get('/images', async (req, res) => {
     try {
         // Extract the user ID from JWT token
         const token = req.headers.authorization.split(' ')[1]; // "Bearer <token>"
@@ -54,20 +54,24 @@ router.get('/images', async (req, res) => {
             return res.status(404).json({ message: 'No models or images found for the user.' });
         }
 
-        // Extract all images from the user's training models
-        const images = trainingModels.reduce((acc, model) => {
-            if (model.images_list && model.images_list.length > 0) {
-                acc.push(...model.images_list); // Collect all images
-            }
-            return acc;
-        }, []);
+        // Create a structured response where each model has its own images list
+        const modelsWithImages = trainingModels.map(model => {
+            return {
+                modelId: model._id, // or model.name if you have a name field
+                modelName: model.modelName, // Add modelName if you have it in your schema
+                images: model.images_list || [] // Return the images list for the model
+            };
+        });
 
-        if (images.length === 0) {
+        // Check if any model has images
+        const hasImages = modelsWithImages.some(model => model.images.length > 0);
+
+        if (!hasImages) {
             return res.status(404).json({ message: 'No images found for the user.' });
         }
 
-        // Return all the images
-        res.json({ images });
+        // Return the structured list of models with their images
+        res.json({ models: modelsWithImages });
     } catch (error) {
         console.error('Error fetching images:', error);
         res.status(500).json({ message: 'Server error' });
@@ -75,4 +79,50 @@ router.get('/images', async (req, res) => {
 });
 
 
+router.delete('/delete-image', async (req, res) => {
+
+    // Extract the user ID from JWT token
+    const token = req.headers.authorization.split(' ')[1]; // "Bearer <token>"
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decodedToken.userId;
+
+
+    const { imageUrl, modelId } = req.body;
+
+    try {
+        // Find the training model for the current user
+        const trainingModel = await Training.findOne({ user: userId, modelId: modelId });
+
+        if (!trainingModel) {
+            return res.status(404).json({ message: 'Training model not found' });
+        }
+
+        // Check if the image exists in the model's images_list
+        const imageIndex = trainingModel.images_list.indexOf(imageUrl);
+        if (imageIndex === -1) {
+            return res.status(404).json({ message: 'Image not found in this model.' });
+        }
+
+        // Remove the image URL from the images_list
+        trainingModel.images_list.splice(imageIndex, 1); // Remove the image
+        await trainingModel.save(); // Save the updated model
+
+        // Delete the image from Google Cloud Storage
+        const fileName = imageUrl.split('/').pop(); // Extract the file name from the URL
+        const folderName = req.userId; // Assuming folder name is the user ID
+        const file = gcs.bucket(bucketName).file(`${folderName}/${fileName}`);
+
+        await file.delete();
+
+        // Send success response
+        res.status(200).json({ message: 'Image deleted successfully' });
+
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+
 module.exports = router;
+
