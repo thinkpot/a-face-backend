@@ -62,12 +62,16 @@ async function checkAndGenerateImage(training, task) {
             // Fetch the pricing model for image generation charge
             const pricing = await Pricing.findOne();
             if (!pricing) {
-                return res.status(404).json({ error: 'Pricing data not found' });
+                console.error('Pricing data not found');
+                stopCronJob(task);
+                return;
             }
             const imageGenerationCharge = pricing.imageGenerationCharge;
             // Check if user has enough credits
             if (user.credits < imageGenerationCharge) {
-                return res.status(400).json({ message: 'Insufficient credits' });
+                console.error('Insufficient credits');
+                stopCronJob(task);
+                return;
             }
             console.log("User ", user, "Charge ", imageGenerationCharge, "Credits ", user.credits)
             const replicate = new Replicate({

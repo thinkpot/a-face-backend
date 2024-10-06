@@ -75,7 +75,7 @@ router.post('/train', upload.single('file'), async (req, res) => {
         const trainingCost = pricingDetails ? pricingDetails.modelTrainingCharge : 300; // Default to 300 if not found
         const imageGenerationCost = pricingDetails ? pricingDetails.imageGenerationCharge : 7;
 
-        const totalCost = trainingCost + imageGenerationCost
+        const totalCost = trainingCost
         // Check if user has enough credits
         if (user.credits < totalCost) {
             return res.status(400).json({ message: 'Insufficient credits to train the model' });
