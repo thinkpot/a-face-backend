@@ -4,6 +4,14 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Training = require('../models/Training');
 const User = require('../models/User');
+const { Storage, Acl } = require('@google-cloud/storage');
+const path = require('path');
+
+// Google Cloud Storage setup
+const gcs = new Storage({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    keyFilename: path.join(__dirname, '../ai-face-generator-435017-76d6fa92854c.json') // Path to your service account JSON file
+});
 
 // Example route to get user information (authenticated)
 router.get('/profile', (req, res) => {
@@ -57,7 +65,7 @@ router.get('/get-credits', async (req, res) => {
         // Create a structured response where each model has its own images list
         const modelsWithImages = trainingModels.map(model => {
             return {
-                modelId: model._id, // or model.name if you have a name field
+                modelId: model.modelId, // or model.name if you have a name field
                 modelName: model.modelName, // Add modelName if you have it in your schema
                 images: model.images_list || [] // Return the images list for the model
             };
@@ -79,16 +87,19 @@ router.get('/get-credits', async (req, res) => {
 });
 
 
-router.delete('/delete-image', async (req, res) => {
+router.post('/delete-image', async (req, res) => {
 
     // Extract the user ID from JWT token
     const token = req.headers.authorization.split(' ')[1]; // "Bearer <token>"
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decodedToken.userId;
 
+    const user = await User.findById(userId);
 
     const { imageUrl, modelId } = req.body;
 
+    console.log("Image url ", imageUrl)
+    console.log("model Id ", modelId)
     try {
         // Find the training model for the current user
         const trainingModel = await Training.findOne({ user: userId, modelId: modelId });
@@ -97,6 +108,7 @@ router.delete('/delete-image', async (req, res) => {
             return res.status(404).json({ message: 'Training model not found' });
         }
 
+        console.log()
         // Check if the image exists in the model's images_list
         const imageIndex = trainingModel.images_list.indexOf(imageUrl);
         if (imageIndex === -1) {
@@ -109,7 +121,8 @@ router.delete('/delete-image', async (req, res) => {
 
         // Delete the image from Google Cloud Storage
         const fileName = imageUrl.split('/').pop(); // Extract the file name from the URL
-        const folderName = req.userId; // Assuming folder name is the user ID
+        const folderName = user.googleId; // Assuming folder name is the user ID
+        const bucketName = `${process.env.GCLOUD_STORAGE_BUCKET}`;
         const file = gcs.bucket(bucketName).file(`${folderName}/${fileName}`);
 
         await file.delete();

@@ -25,7 +25,7 @@ const app = express();
 app.use(express.json());
 app.use(cors({
   origin: 'http://localhost:3000', // Update this if your frontend is deployed elsewhere
-  methods: 'GET,POST, PUT', // Allow the necessary HTTP methods
+  methods: 'GET,POST, PUT, DELETE', // Allow the necessary HTTP methods
   allowedHeaders: 'Content-Type,Authorization', // Allow necessary headers
 })); // Optional, for handling CORS
 app.options('*', cors());
