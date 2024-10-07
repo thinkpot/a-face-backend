@@ -135,7 +135,7 @@ exports.createCashFreeOrder = async (req, res) => {
                 customer_phone:"+918888888888"
             },
             order_meta: {
-                return_url: `${proces.env.FRONTEND_URL}/upload`,
+                return_url: `${process.env.FRONTEND_URL}/upload`,
                 notify_url: `${process.env.APP_URL}/api/payment/verify-cashfree-payment`,
             },
             order_note: 'Payment for credits'
