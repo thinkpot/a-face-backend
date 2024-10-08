@@ -16,7 +16,7 @@ const gcs = new Storage({
 // Example route to get user information (authenticated)
 router.get('/profile', (req, res) => {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader) {
         return res.status(401).json({ message: 'No token provided' });
     }
@@ -33,22 +33,22 @@ router.get('/profile', (req, res) => {
 
 router.get('/get-credits', async (req, res) => {
     try {
-      const token = req.headers.authorization.split(' ')[1]; // Extract JWT token
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET); // Verify token
-      const user = await User.findById(decodedToken.userId); // Find the user by ID
-  
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      res.status(200).json({ credits: user.credits }); // Return the user's credits
+        const token = req.headers.authorization.split(' ')[1]; // Extract JWT token
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET); // Verify token
+        const user = await User.findById(decodedToken.userId); // Find the user by ID
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ credits: user.credits }); // Return the user's credits
     } catch (error) {
-      res.status(500).json({ message: 'Error fetching credits', error: error.message });
+        res.status(500).json({ message: 'Error fetching credits', error: error.message });
     }
-  });
+});
 
 
-  router.get('/images', async (req, res) => {
+router.get('/images', async (req, res) => {
     try {
         // Extract the user ID from JWT token
         const token = req.headers.authorization.split(' ')[1]; // "Bearer <token>"

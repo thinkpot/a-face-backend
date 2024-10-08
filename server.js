@@ -16,6 +16,7 @@ const verifyToken = require('./authMiddleware');
 const paymentRoutes = require('./routes/paymentRoutes');
 const pricingRoutes = require('./routes/pricingRoutes');
 const { listImages } = require('./routes/googleStorageController');
+const inviteCodeRoutes = require('./routes/InviteCodeRoutes');
 
 
 dotenv.config();
@@ -100,6 +101,7 @@ app.get('/api/styles/:gender/:tab', listImages);
 // Use the pricing routes
 app.use('/api', pricingRoutes);
 
+app.use('/api/invite-code', inviteCodeRoutes);
 
 
 // Basic route
