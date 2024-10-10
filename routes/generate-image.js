@@ -122,7 +122,7 @@ router.post('/generate-image', async (req, res) => {
 
     } catch (error) {
         console.error('Error generating image:', error);
-        return res.status(500).json({ error: 'Failed to generate image or upload to cloud' });
+        return res.status(500).json({ error: 'Failed to generate image or upload to cloud', message: 'Failed to generate image or upload to cloud' });
     }
 });
 
