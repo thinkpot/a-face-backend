@@ -41,8 +41,9 @@ router.post('/google/callback', async (req, res) => {
         }
 
         // Generate a JWT token with the user info
-        const jwtToken = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '10h' });
-
+        const jwtToken = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        user.userToken = jwtToken
+        await user.save();
         console.log("JWT token", jwtToken);
         res.json({ token: jwtToken, user });
     } catch (error) {

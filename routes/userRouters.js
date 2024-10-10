@@ -6,6 +6,7 @@ const Training = require('../models/Training');
 const User = require('../models/User');
 const { Storage, Acl } = require('@google-cloud/storage');
 const path = require('path');
+const axios = require('axios');
 
 // Google Cloud Storage setup
 const gcs = new Storage({
@@ -133,6 +134,23 @@ router.post('/delete-image', async (req, res) => {
     } catch (error) {
         console.error('Error deleting image:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+router.post('/generate-prompt', async (req, res) => {
+    try {
+        const { desire } = req.body;
+
+        // Call the external API with axios
+        const response = await axios.post('https://flux1.ai/api/chat', {
+            messages: `Generate a detailed image prompt based on this short description: "${desire}"`,
+        });
+
+        // Return the response from the external API to the client
+        res.status(200).json(response.data);
+    } catch (error) {
+        console.error('Error generating prompt:', error);
+        res.status(500).json({ message: 'Failed to generate prompt', error: error.message });
     }
 });
 

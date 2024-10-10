@@ -14,6 +14,9 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,  // Track if the user has already redeemed an invite code
   },
+  userToken:{
+    type:String
+  }
 });
 
 module.exports = mongoose.model('User', UserSchema);
