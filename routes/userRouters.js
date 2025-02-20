@@ -139,18 +139,49 @@ router.post('/delete-image', async (req, res) => {
 
 router.post('/generate-prompt', async (req, res) => {
     try {
-        const { desire } = req.body;
+        const { prompt } = req.body;
 
-        // Call the external API with axios
-        const response = await axios.post('https://flux1.ai/api/chat', {
-            messages: `Generate a detailed image prompt based on this short description: "${desire}"`,
+        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+            messages: [
+                {
+                    role: "user",
+                    content: `You are an expert in creating simple, clear prompts for image generation AI models. Your task is to generate easy-to-understand prompts based on user input, Generate a detailed image prompt based on this short description just give me prompt and nothing else: "${prompt}"`
+                }
+            ],
+            model: "cognitivecomputations/dolphin3.0-mistral-24b:free",
+            stream: false,
+            max_tokens: 500  // Ensure we get a complete response
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPEN_ROUTER}`
+            }
         });
 
-        // Return the response from the external API to the client
-        res.status(200).json(response.data);
+        // Verify we have a complete response
+        if (!response || !response.data || !response.data.choices) {
+            throw new Error('Incomplete response from API');
+        }
+
+        const generatedPrompt = response.data.choices[0]?.message?.content;
+
+        if (!generatedPrompt) {
+            throw new Error('No prompt generated from the API');
+        }
+
+        console.log("Generated prompt:", generatedPrompt);
+        res.status(200).json({ 
+            success: true,
+            prompt: generatedPrompt 
+        });
+
     } catch (error) {
         console.error('Error generating prompt:', error);
-        res.status(500).json({ message: 'Failed to generate prompt', error: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to generate prompt', 
+            error: error.message || 'Unknown error occurred'
+        });
     }
 });
 

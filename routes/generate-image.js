@@ -22,7 +22,7 @@ const gcs = new Storage({
 const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY;
 
 router.post('/generate-image', async (req, res) => {
-    const { prompt, version, trigger_word, modelId } = req.body;
+    const { prompt, version, trigger_word, modelId, styleUrl } = req.body;
     try {
 
         // Retrieve user from the JWT token (assuming JWT token is in headers)
@@ -53,22 +53,33 @@ router.post('/generate-image', async (req, res) => {
             auth: process.env.REPLICATE_API_KEY,
         });
 
+        // Base configuration for the model
+        const baseConfig = {
+            model: "dev",
+            prompt: trigger_word + " " + prompt,
+            lora_scale: 1,
+            num_outputs: 1,
+            aspect_ratio: "1:1",
+            output_format: "jpg",
+            guidance_scale: 3.5,
+            output_quality: 90,
+            prompt_strength: 0.8,
+            extra_lora_scale: 1,
+            num_inference_steps: 28
+        };
+
+        // If styleUrl is provided, add image-to-image specific parameters
+        const modelConfig = styleUrl ? {
+            ...baseConfig,
+            image: styleUrl,          // Reference image URL
+            prompt_strength: 0.65,    // Reduced to maintain more of the reference image's features
+            num_inference_steps: 28,  // Increased for better quality with image-to-image
+        } : baseConfig;
+
         const output = await replicate.run(
             `${version}`,
             {
-                input: {
-                    model: "dev",
-                    prompt: trigger_word + " " + prompt,
-                    lora_scale: 1,
-                    num_outputs: 1,
-                    aspect_ratio: "1:1",
-                    output_format: "jpg",
-                    guidance_scale: 3.5,
-                    output_quality: 90,
-                    prompt_strength: 0.8,
-                    extra_lora_scale: 1,
-                    num_inference_steps: 28
-                }
+                input: modelConfig
             }
         );
 
@@ -122,7 +133,10 @@ router.post('/generate-image', async (req, res) => {
 
     } catch (error) {
         console.error('Error generating image:', error);
-        return res.status(500).json({ error: 'Failed to generate image or upload to cloud', message: 'Failed to generate image or upload to cloud' });
+        return res.status(500).json({ 
+            error: 'Failed to generate image or upload to cloud', 
+            message: error.message || 'Failed to generate image or upload to cloud' 
+        });
     }
 });
 
